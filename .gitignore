@@ -1,0 +1,8 @@
+*.pyc
+__pycache__/
+media/
+act.bat
+run.bat
+db.sqlite3
+temp/
+myvenv/

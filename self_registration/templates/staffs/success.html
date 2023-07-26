@@ -1,0 +1,48 @@
+{% extends 'base-guest.html' %}
+
+{% block content_guest %}
+
+<div class="row">
+    <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="card">
+            <div class="card-header">
+                <div class="row d-flex align-items-center justify-content-between">
+                    <h4 class="m-0 font-weight-bold text-primary">Staff Self Register Entries - Done</h4>
+                    <span><button class="btn btn-primary btn-circle btn-sm" onclick="window.print()">
+                        <i class="fas fa-print"></i>
+                    </button></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p>
+                    <span class="text-success font-weight-bold">Staff Registration Submitted!</span>
+                </p>
+                <p>
+                    <strong>Registration Status:</strong> {% if staff.is_approved == 1 %} Awaiting Approval {% else %}-{% endif %}.
+                </p>
+                <span>You can patiently await for your Employer to approve your registration.</span>
+                <p>
+                    After approval, you can proceed to check in using Face or QR code provided by your Employer. 
+                </p>
+                <p>
+                    <strong>Note:</strong>
+                </p>
+                <p>
+                    <ul>
+                        <li>Staff access by default is set to one year after employer's approval.</li>
+                        <li>Employer can renew the staff access period after the access has been terminated.</li>
+                    </ul>
+                </p>
+                <p>Thank you.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    setTimeout(() => {
+        window.location.href = window.location.href
+    }, 10000)
+</script>
+
+{% endblock content_guest %}

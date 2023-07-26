@@ -1,0 +1,220 @@
+{% extends 'base-guest.html' %}
+
+{% block content_guest %}
+
+<div class="row">
+    <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="card">
+            <div class="card-header">
+                <div class="row d-flex align-items-center justify-content-between">
+                    <h4 class="m-0 font-weight-bold text-primary">Visitor Self Register Entries - Done</h4>
+                    <span><button class="btn btn-primary btn-circle btn-sm" onclick="window.print()">
+                        <i class="fas fa-print"></i>
+                    </button></span>
+                </div>
+            </div>
+
+            {% if visitor.is_approved == 1 %}
+            <div class="card-body">
+                <h4 class="text-warning font-weight-bold">Thank you. Your registration has been submitted.</h4>
+                <p>Current status: Pending for host approval.</p>
+                <p>You can check in after your host has approved your visit.</p>
+            </div>
+            {% else %}
+                <div class="card-body">
+                    <p>
+                        <span class="text-success font-weight-bold">Self Register Entries Success!</span>
+                    </p>
+                    <p>
+                        Kindly key-in the provided code: <strong>{{ code }}</strong> or your mobile no during check in.
+                        <input type="hidden" type="text" id="search" name="search" value="{{code}}">
+                        <br>
+                        <!-- <p style="color: red;">
+                            You can click 'Check In' below to continue
+                        </p>
+                        <br>
+                        <p>
+                            <a id="updateDetails" class="btn btn-sm btn-warning" href="{% url 'details-checkin' %}" onclick="getDetail(event); return false;">
+                                Check In
+                            </a>
+                        </p> -->
+                    </p>
+                    <br>
+                    <p>
+                        You can also snapshot provided QR code below after you complete check-in: 
+                    </p>
+                    <p>
+                        <img src="/static{{ visitor.qr_image.url }}" alt="visitor QR" width="300px">
+                    </p>
+                    <p>
+                        Download & scan the QR code when entering premises/floor here after check in at the kiosk:
+                        <a href="/static{{ visitor.qr_image.url }}" title="download QR" download>
+                            <i class="fas fa-download fa-sm text-primary-100" aria-hidden="true"></i>
+                        </a>
+                    </p>
+                    <p>
+                        <strong>Reminder:</strong>
+                    </p>
+                    <p>
+                        <ul>
+                            <li>Do not lose your registration code.</li>
+                            <li>Note that this is only a one way entry. You may do a self register for another entry.</li>
+                            <li>If you loss your check in privilege, you can always search your registered details using you unique code or mobile numbers.</li>
+                        </ul>
+                    </p>
+                    <p>Thank you.</p>
+                </div>
+            {% endif %}
+            
+           
+        </div>
+    </div>
+</div>
+
+{% include 'check_in/modal/checkin_detail.html' %}
+{% endblock content_guest %}
+
+{% block javascripts %}
+<script src="/static/js/vendor/intl-tel-input-17.0.0/build/js/intlTelInput.js"></script>
+
+<script>
+    function getDetail(event) {
+        var modal = $('#detail_modal');
+        modal.modal('show');
+
+        var url = $(event.target).closest('a').attr('href');
+
+        var search = $('input[name=search]').val();
+        var phone = "";
+
+        if (search != '' && phone != '') {
+            // alert("You must provide only one of the details: Ref Code or Mobile No. only");
+        }
+
+        if (search == '' && phone == '') {
+            alert("Kindly enter one of the details: Ref Code or Mobile No.");
+        } else if (search != '') {
+            var condition = 'search';
+        } else if( phone != '') {
+            var condition = 'phone';
+        }
+
+        $.ajax({
+            type: "GET",
+            url: url,
+            data: {
+                condition: condition,
+                search: search,
+                phone: phone
+            }
+        }).done(function(data, textStatus, jqXHR) {
+            // formAjaxSubmit(modal, url);
+            modal.find('.modal-body').html(data);
+            modal.modal('show');
+
+            $('#check_in').on('submit', function(event){
+                event.preventDefault();
+                console.log("checked in submitted!")
+                checkedin_update(url, modal);
+            });
+
+        }).fail(function(jqXHR, textStatus, data, errorThrown) {
+            console.log(data);
+        });
+    }
+
+    function checkedin_update(url, modal) {
+        console.log('post started...');
+
+        var err = document.querySelector('.checkin-err');
+        err.classList.add("hide");
+        err.innerHTML = "";
+
+        var form = modal.find('.modal-body form');
+        formData = new FormData(form[0]);
+
+        $.ajax({
+            headers: { "X-CSRFToken":  $('input[name=csrfmiddlewaretoken]').val() },
+            url : "/self-register/check-in/details/",
+            method : "POST",
+            // data: $(form).serialize(),
+            data: formData,
+            contentType: 'multipart/form-data',
+            beforeSend: function(){
+                // swal.showLoading();
+                swal.fire({
+                    html: '<div id="loader" class="loader"><span></span> <p>Please wait while we are processing...</p> </div>',
+                    showConfirmButton: false,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                })
+            },
+            complete: function() {
+                swal.hideLoading();
+            },
+            success : function(data) {
+                setTimeout(function(){
+                    if (data.error) {
+                        var swal_err = document.querySelector('.swal2-container');
+                        swal_err.classList.remove("swal2-backdrop-show");
+                        swal_err.classList.add("swal2-backdrop-hide");
+                        $('.swal2-container').hide('slow');
+                        if (data.message) {
+                            var err = document.querySelector('.checkin-err');
+                            err.classList.remove("hide");
+                            err.classList.add("show");
+                            err.innerHTML = data.message.__all__[0];
+                            // errorDiv.classList.remove("hide");
+                            // errorDiv.classList.add("show");
+                            // errorSpan.innerHTML = data.message.__all__[0];
+                        } else {
+                            var err = document.querySelector('.checkin-err');
+                            err.classList.remove("hide");
+                            err.classList.add("show");
+                            err.innerHTML = data.data;
+                            // errorDiv.classList.remove("hide");
+                            // errorDiv.classList.add("show");
+                            // errorSpan.innerHTML = data.data;
+                        }
+                    } else {
+                        var swal_err = document.querySelector('.swal2-container');
+                        swal_err.classList.remove("swal2-backdrop-show");
+                        swal_err.classList.add("swal2-backdrop-hide");
+                        $('.swal2-container').hide('slow');
+                        swal.fire({
+                            'title': "Status: DONE",
+                            'text': "Checked In Successful. You can proceed to scan face now. Thank you.",
+                            'timer': 2500
+                        });
+
+                        setTimeout(function(){
+                            window.location.href = 'http://127.0.0.1:8000/self-register';
+                        }, 2500);
+                            
+                    }
+                }, 1000);
+                
+            },
+            error : function(xhr, ajaxOptions, thrownError) {
+                // modal.modal('hide');
+                setTimeout(function(){
+                    swal.fire("!Opps ", "Something went wrong, try again later", "error");
+                }, 1000);
+            },
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    }
+</script>
+
+<script>
+    var url = '{{ self_register_url }}';
+    var url2 = 'https://luzerne.concordesecurity.com/self-register';
+    setTimeout(() => {
+        window.location.href = url;
+    }, 5000)
+</script>
+
+{% endblock javascripts %}

@@ -1,0 +1,607 @@
+{% block extrastyles %}
+
+<style>
+    body {
+        overflow-y: scroll;
+        overflow-x: hidden;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+
+{% endblock extrastyles %}
+
+<form id="selfregister-kiosk-visitor" method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="row px-4 mt-4">
+      {% if form.errors %}
+          {% for field in form.non_field_errors %}
+              <div class="col-md alert alert-warning alert-dismissible fade show mb-4" id="update_alert" role="alert">
+                  <strong>{{ field | escape }}</strong>
+              </div>
+          {% endfor %}
+      {% endif %}
+    </div>
+    {% comment %} <div class="img-responsive row d-flex justify-content-center">
+      <img id='visitor-photo' src="/static/icon/avatar.png" style="border-radius: 50%; width: 180px;" class="img-responsive2 mb-2" alt="avatar">
+      <br/>
+    </div> {% endcomment %}
+   
+    
+    <!-- hidden input to contain files -->
+    <input type="hidden" id="id_photo" name="id_photo" value="" >
+    
+    {% for host in hosts %}
+      <div class="form-group{% if host.errors or host.non_field_errors %} has-error{% endif %}">
+        <label for="{{ host.id_for_label }}">{{ host.label }}: </label>
+        {{host}}
+        
+        {% for error in host.errors %}
+          <p class="help-block text-danger">{{ error }}</p>
+        {% endfor %}
+        {% for error in host.non_field_errors %}
+          <p class="help-block text-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <div class="img-responsive mb-2 offset-4" id="results" style="margin-left: 15%"></div>
+    <label for="photo">Capture:</label>
+    <button id="my_webcam" class="btn btn-sm btn-secondary" onclick="openWebcam(event)" style="color: #fff;" disabled>Start Camera</button>
+
+    <div id="main_camera">
+        <div id="my_camera" class="webcam mb-2 offset-4" style="width:320px; height:240px; margin-left: 12%;"></div>
+    </div>
+    
+    <a class="btn btn-sm btn-primary mb-2 offset-5" href="javascript:void(take_snapshot())" id="capture_button">Capture</a>
+
+    <div>
+    <p><span id="kiosk-valid-photo" class="hide small text-success py-1"></span></p>
+    <p><span id="kiosk-error-photo" class="hide small text-danger py-1"></span></p>
+    </div> 
+    {% for field in form %}
+      <div class="form-group{% if field.errors or field.non_field_errors %} has-error{% endif %}">
+        {% if field.id_for_label == 'id_contact_no' %}
+          <label for="phone">Contact No.: </label></br>
+          <input class="form-control form_input" type="tel" id="phone_kiosk" placeholder="12345678" required>
+          <input type="hidden" name="country_kiosk" id="country_kiosk" value="">
+          {{ form.contact_no }}
+          <div>
+            <span id="kiosk-valid-msg" class="hide"></span>
+            <span id="kiosk-error-msg" class="hide text-danger small py-1"></span>
+          </div>
+        {% elif field.id_for_label == 'id_identification_no' %}
+          <label for="id_identification_no">NRIC (e.g: last 3 digits and an alphabet): </label></br>
+          {{ form.identification_no }}
+          <div>
+            <p><span id="kiosk-valid-nric" class="hide small text-success py-1"></span></p>
+            <p><span id="kiosk-error-nric" class="hide small text-danger py-1"></span></p>
+          </div>
+        
+        {% else %}
+          <label for="{{ field.id_for_label }}">{{ field.label }}: </label>
+        {{field}}
+        {% endif %}
+        
+        {% for error in field.errors %}
+          <p class="help-block text-danger">{{ error }}</p>
+        {% endfor %}
+        {% for error in field.non_field_errors %}
+          <p class="help-block text-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    
+        <input id="submit2" type="submit" class="btn btn-info btn-sm" value="Submit Registration"></input>
+    <div>
+        <input id="submit-disabled" type="submit" class="btn btn-info btn-sm" value="Submit Registration" disabled></input>
+    </div>
+
+</form>
+
+{% block javascripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="/static/js/vendor/intl-tel-input-17.0.0/build/js/intlTelInput.js"></script>
+<script src="/static/js/webcam.js"></script>
+<script>
+    $('#submit-disabled').hide();
+    var webDiv = $("#main_camera")
+    webDiv.attr("style", "display:none")
+    
+
+    $.fn.noMask = function(regex) { 
+        this.on("keypress", function(e) {
+            if (regex.test(String.fromCharCode(e.which))) {
+                return false;
+            }
+        });
+    }
+    
+    $("input[type=tel]").noMask( /[a-zA-Z]/ );
+
+    var input = document.querySelector("#phone_kiosk");
+    var country = document.querySelector("#country_kiosk");
+    var errorMsg = document.querySelector("#kiosk-error-msg");
+    var validMsg = document.querySelector("#kiosk-valid-msg");
+  
+    // phone number validation
+    var errorMap = ["Invalid number", "Invalid country code", "Phone no. is too short", "Phone no. is too long", "Invalid number", "Invalid"];
+  
+    // Initialise phone number
+    window.intlTelInput(input, {
+        preferredCountries: ["sg", "my"],
+        separateDialCode: true,
+        utilsScript: "/static/js/vendor/intl-tel-input-17.0.0/build/js/utils.js"
+    });
+  
+    var iti = window.intlTelInputGlobals.getInstance(input);
+  
+    var resetMobile = function() {
+        input.classList.remove("error");
+        errorMsg.innerHTML = "";
+        validMsg.innerHTML = "";
+        errorMsg.classList.add("hide");
+        validMsg.classList.add("hide");
+    };
+
+    // set it's initial value
+    country.value = iti.getSelectedCountryData().dialCode;
+
+    input.addEventListener("countrychange", function(e) {
+        var code = iti.getSelectedCountryData().dialCode;
+        country.value = code;
+    });
+
+    // on blur: validate
+    input.addEventListener('blur', function() {
+        resetMobile();
+
+        let code_len = country.value.length;
+        let subst = input.value.trim().substring(0,1);
+
+        if (subst == '0') {
+            let update_input = input.value.trim().split(input.value.trim().substring(0,1));
+            input.value = update_input[1];
+            // document.getElementById('id_contact_no').value = '+' + country.value + input.value;
+            $('input[name=contact_no]').val('+' + country.value + input.value)
+
+        } else if ( subst == '+') {
+
+            if (code_len == 2) {
+                let update_input = input.value.trim().split(input.value.trim().substring(0,3));
+                input.value = update_input[1];
+                // document.getElementById('id_contact_no').value = '+' + country.value + input.value;
+                $('input[name=contact_no]').val('+' + country.value + input.value)
+
+            } else if ( code_len == 3) {
+                let update_input = input.value.trim().split(input.value.trim().substring(0,4));
+                input.value = update_input[1];
+                // document.getElementById('id_contact_no').value = '+' + country.value + input.value;
+                $('input[name=contact_no]').val('+' + country.value + input.value)
+
+            }else {
+                // document.getElementById('id_contact_no').value = '+' + country.value + input.value;
+                $('input[name=contact_no]').val('+' + country.value + input.value)
+            }
+        } else {
+            $('input[name=contact_no]').val('+' + country.value + input.value.trim());
+        }
+        
+        if (input.value.trim()) {
+            if (iti.isValidNumber()) {
+                validMsg.classList.remove("hide");
+                $('#submit2').show('slow');
+            } else {
+                input.classList.add("error");
+                var errorCode = iti.getValidationError();
+
+                if (errorCode == -99) {
+                    errorMsg.innerHTML = errorMap[5];
+                    errorMsg.classList.remove("hide");
+                    $('#submit2').hide('slow');
+                } else {
+                    errorMsg.innerHTML = errorMap[errorCode];
+                    errorMsg.classList.remove("hide");
+                    $('#submit2').hide('slow');
+                }
+            }
+        }
+    });
+
+    // on keyup / change flag: reset
+    input.addEventListener('change', resetMobile);
+    input.addEventListener('keyup', resetMobile);
+
+    var errorPhoto = document.querySelector("#kiosk-error-photo");
+    var validPhoto = document.querySelector("#kiosk-valid-photo");
+    var name_input = document.getElementById('id_name');
+    // var identification_no_input = document.getElementById('id_identification_no');
+    var contact_no_input = document.getElementById('phone_kiosk');
+    var tenant_input = document.getElementById('id_tenant');
+    var start_date_input = document.getElementById('id_start_date');
+    var end_date_input = document.getElementById('id_end_date');
+    var remarks_input = document.getElementById('id_remarks');
+
+    function forceInputUppercase(e)
+    {
+        var start = e.target.selectionStart;
+        var end = e.target.selectionEnd;
+        e.target.value = e.target.value.toUpperCase();
+        e.target.setSelectionRange(start, end);
+    }
+
+    // identification_no_input.addEventListener('keyup', forceInputUppercase, false);
+
+    var resetPhotoValidation = function() {
+        $('#visitor-photo').attr('src', "/static/icon/avatar.png");
+        errorPhoto.innerHTML = "";
+        validPhoto.innerHTML = "";
+        errorPhoto.classList.add("hide");
+        validPhoto.classList.add("hide");
+
+        name_input.setAttribute("readonly", "true");
+        // identification_no_input.setAttribute("readonly", "true");
+        contact_no_input.setAttribute("readonly", "true");
+        tenant_input.setAttribute("readonly", "true");
+        start_date_input.setAttribute("readonly", "true");
+        end_date_input.setAttribute("readonly", "true");
+        remarks_input.setAttribute("readonly", "true");
+    };
+
+    $(document).ready(function () { //document ready call
+      $("#id_photo").change(function(){
+          console.log('photo uploaded efg');
+          resetPhotoValidation();
+          preview_image(this);
+      });
+    });
+
+    $(document).ready(function () { //document ready call
+        $('#capture_button').hide()
+
+        Webcam.on( 'error', function(err) {
+
+            $('#capture_button').hide('slow')
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            })
+
+            Toast.fire({
+                icon: 'error',
+                title: err.name,
+                text: err.message
+            });
+            
+            setTimeout(function(){
+                $('#webcam_modal').hide('slow')
+
+                window.location.reload()
+            }, 2500);
+
+        });
+    });
+
+    function openWebcam() {
+        $('#capture_button').hide();
+        webDiv.attr("style", "display:block")
+        Webcam.set({
+            width: 320,
+            height: 240
+        });
+        Webcam.attach( '#my_camera' );
+
+        $('#capture_button').show('slow');
+
+        Webcam.on( 'load', function() {
+            // library is loaded
+            console.log('webcam successfully loaded.');
+            
+        } );
+        
+        Webcam.on( 'live', function() {
+            // camera is live, showing preview image
+            // (and user has allowed access)
+            console.log('webcam is live now.');
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+                })
+
+            Toast.fire({
+                icon: 'success',
+                title: 'Webcam is live now'
+            })
+            
+        } );
+        
+        Webcam.on( 'error', function(err) {
+            // an error occurred (see 'err')
+            // swal.fire("!Opps Webcam error occurs", "Something went wrong, try again later", "error");
+            console.log('webcam error occurs!');
+            console.log(err);
+            $('#capture_button').hide('slow');
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+                })
+
+            Toast.fire({
+                icon: 'error',
+                title: 'Webcam errors! try again or check device connection'
+            });
+
+            Webcam.off();
+        });
+    }
+
+    var tenant_id;
+
+    $('#id_tenant').on('change', function() {
+        tenant_id = $(this).val();
+        console.log('tenant_id',tenant_id.length > 0)
+       
+        if(tenant_id.length > 0){
+            $('#my_webcam').attr('disabled', false);
+        }else{
+            $('#my_webcam').attr('disabled', true);
+        }
+       
+    })
+
+    function take_snapshot() {
+        Webcam.snap( function(data_uri) {
+
+            document.getElementById('results').innerHTML =
+                    '<img style="border-radius: 50%; width: 300px; padding-bottom: 20px;" class="img-responsive" alt="avatar" src="' + data_uri + '"/>';
+		
+		    var photo = document.getElementById('id_photo').value = data_uri;
+            resetPhotoValidation();
+
+            $('#id_photo').change(function() {
+                resetPhotoValidation();
+            })
+
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+                })
+
+            Toast.fire({
+                icon: 'success',
+                title: 'Snapshot taken'
+            })
+
+            $.ajax({
+                headers: { "X-CSRFToken": getCookie('csrftoken') },
+                url : '/self-register/fra-photo-validation/',
+                method : "POST",
+                data: { 'isStaffReg': 0, 'type': 'webcam', 'tenant_id': tenant_id ? tenant_id : null, 'photo': data_uri},
+                success : function(response) {
+                    console.log(response);
+
+                    var btn = document.getElementById('submit2');
+
+                    if (response.error) {
+                        errorPhoto.innerHTML = response.msg;
+                        name_input.setAttribute("readonly", "true");
+                        // identification_no_input.setAttribute("readonly", "true");
+                        contact_no_input.setAttribute("readonly", "true");
+                        tenant_input.setAttribute("readonly", "true");
+                        start_date_input.setAttribute("readonly", "true");
+                        end_date_input.setAttribute("readonly", "true");
+                        remarks_input.setAttribute("readonly", "true");
+                        btn.setAttribute("disabled", true);
+                    } else {
+                        let imgSource = `file:///${response.imgSrc}`;
+                        var newImage = response.photo;
+                        $('#results').attr('src', newImage);
+                        
+                        // Append new image to file input
+                        var new_photo_input = document.getElementById('id_photo');
+                        const dataTransfer = new DataTransfer()
+                        const file = new File([imgSource], response.filename, { type: 'image/jpg' })
+                        dataTransfer.items.add(file);
+
+                        new_photo_input.files = dataTransfer.files;
+
+                        validPhoto.innerHTML = response.msg;
+                        name_input.removeAttribute("readonly", "false");
+                        // identification_no_input.removeAttribute("readonly", "false");
+                        contact_no_input.removeAttribute("readonly", "false");
+                        tenant_input.removeAttribute("readonly", "false");
+                        start_date_input.removeAttribute("readonly", "false");
+                        end_date_input.removeAttribute("readonly", "false");
+                        remarks_input.removeAttribute("readonly", "false");
+                        btn.removeAttribute("disabled", false);
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    swal.fire("!Opps ", "Something went wrong. Try Again. Thank you.", "error");
+                }
+            })
+
+            // $.ajax({
+            //     headers: { "X-CSRFToken": getCookie('csrftoken') },
+            //     url : '/self-register/validate-photo/',
+            //     method : "POST",
+            //     data: {'photo': data_uri},
+            //     success : function(response) {
+            //         var btn = document.getElementById('submit2');
+
+            //         if (response.error) {
+            //             errorPhoto.innerHTML = response.msg;
+            //             name_input.setAttribute("readonly", "true");
+            //             // identification_no_input.setAttribute("readonly", "true");
+            //             contact_no_input.setAttribute("readonly", "true");
+            //             tenant_input.setAttribute("readonly", "true");
+            //             start_date_input.setAttribute("readonly", "true");
+            //             end_date_input.setAttribute("readonly", "true");
+            //             remarks_input.setAttribute("readonly", "true");
+            //             btn.setAttribute("disabled", true);
+            //         } else {
+            //             let imgSource = `file:///${response.imgSrc}`;
+            //             var newImage = response.photo;
+            //             $('#results').attr('src', newImage);
+                        
+            //             // Append new image to file input
+            //             var new_photo_input = document.getElementById('id_photo');
+            //             const dataTransfer = new DataTransfer()
+            //             const file = new File([imgSource], response.filename, { type: 'image/jpg' })
+            //             dataTransfer.items.add(file);
+
+            //             new_photo_input.files = dataTransfer.files;
+
+            //             validPhoto.innerHTML = response.msg;
+            //             name_input.removeAttribute("readonly", "false");
+            //             // identification_no_input.removeAttribute("readonly", "false");
+            //             contact_no_input.removeAttribute("readonly", "false");
+            //             tenant_input.removeAttribute("readonly", "false");
+            //             start_date_input.removeAttribute("readonly", "false");
+            //             end_date_input.removeAttribute("readonly", "false");
+            //             remarks_input.removeAttribute("readonly", "false");
+            //             btn.removeAttribute("disabled", false);
+            //         }
+            //     },
+            //     error: function(jqXHR, textStatus, errorThrown) {
+            //         swal.fire("!Opps ", "Something went wrong. Try Again. Thank you.", "error");
+            //     }
+            // })
+        });
+    }
+
+    function preview_image(input) 
+    {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                // console.log(e.target.result); // Base64 encoded image
+                $('#visitor-photo').attr('src', e.target.result);
+
+                var photo_input = e.target.result;
+
+                // run check face with fra main - TODO
+                $.ajax({
+                    headers: { "X-CSRFToken": getCookie('csrftoken') },
+                    url : '/self-register/validate-photo/',
+                    method : "POST",
+                    data: {'photo': photo_input},
+                    success : function(response) {
+                        var btn = document.getElementById('submit2');
+
+                        if (response.error) {
+                            errorPhoto.innerHTML = response.msg;
+                            name_input.setAttribute("readonly", "true");
+                            // identification_no_input.setAttribute("readonly", "true");
+                            contact_no_input.setAttribute("readonly", "true");
+                            tenant_input.setAttribute("readonly", "true");
+                            start_date_input.setAttribute("readonly", "true");
+                            end_date_input.setAttribute("readonly", "true");
+                            remarks_input.setAttribute("readonly", "true");
+                            btn.setAttribute("disabled", true);
+                        } else {
+                            validPhoto.innerHTML = response.msg;
+                            name_input.removeAttribute("readonly", "false");
+                            // identification_no_input.removeAttribute("readonly", "false");
+                            contact_no_input.removeAttribute("readonly", "false");
+                            tenant_input.removeAttribute("readonly", "false");
+                            start_date_input.removeAttribute("readonly", "false");
+                            end_date_input.removeAttribute("readonly", "false");
+                            remarks_input.removeAttribute("readonly", "false");
+                            btn.removeAttribute("disabled", false);
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        swal.fire("!Opps ", "Something went wrong. Try Again. Thank you.", "error");
+                    }
+                })
+            }
+            var photoData = reader.readAsDataURL(input.files[0]); // convert to base64 string
+        }
+    }
+
+    var nric = document.querySelector("#id_identification_no");
+    var errorNRIC = document.querySelector("#kiosk-error-nric");
+    var validNRIC = document.querySelector("#kiosk-valid-nric");
+
+    var resetNric = function() {
+        errorNRIC.innerHTML = "";
+        validNRIC.innerHTML = "";
+        errorNRIC.classList.add("hide");
+        validNRIC.classList.add("hide");
+    };
+
+    $(document).ready(function () {
+
+        // $('#id_identification_no').change(function(e) {
+        //     resetNric();
+        //     if (this.value !== '') {
+        //         $.ajax({
+        //             headers: { "X-CSRFToken": getCookie('csrftoken') },
+        //             url : '/self-register/validate-nric/',
+        //             method : "POST",
+        //             data: {
+        //                 'nric': this.value,
+        //             },
+        //             success : function(data) {
+        //                 if (data.valid) {
+        //                     validNRIC.innerHTML = data.message;
+        //                     $('#submit2').show('slow');
+        //                 } else {
+        //                     errorNRIC.innerHTML = data.message;
+        //                     $('#submit2').hide('slow');
+        //                 }
+        //             },
+        //             error : function(response) {
+        //                 console.log(response)
+        //             },
+        //             cache: false,
+        //         });
+        //     }
+        // })
+
+        // // nric.addEventListener('change', resetNric);
+        // nric.addEventListener('keyup', resetNric);
+    });
+    
+    $(function () {
+        $('#selfregister-kiosk-visitor').on('submit', function() {
+            console.log('submit start')
+            // var submitDisabled = document.getElementById('submit-disabled')
+            $('#submit2').hide();
+            $('#submit-disabled').show();
+        })
+     });
+  </script>
+
+{% endblock javascripts %}

@@ -1,0 +1,57 @@
+{% load cms %}
+
+<form  method="post" novalidate="novalidate" action="{% if not form.instance.pk %}{% get_url 'create' %}{% else %}{% get_url  'update' form.instance %}{% endif %}" class="js-save-form">
+  {% csrf_token %}
+  <div class="modal-header">
+    <h4 class="modal-title">{% if not form.instance.pk %}Add Tenant{% else %} {{form.instance}} - Update Tenant Details {% endif %}</h4>
+    {% comment %} <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button> {% endcomment %}
+
+  </div>
+  <div class="modal-body">
+    {% for field in form %}
+      <div class="form-group{% if field.errors %} has-error{% endif %}">
+        {% if field.id_for_label == 'id_devices' %}
+          
+          <div class="row d-flex align-items-center justify-content-center">
+            <div class="col-md-6">
+              <label for="id_devices">Choose Blk, level: </label></br>
+              {{ form.devices }}
+            </div>
+            <div class="col-md">
+              <label for="dashed"></label></br>
+              <span>-</span>
+            </div>
+            <div class="col-md-5">
+              <label for="unit_no">Unit No.:</label></br>
+              <input id="unit_no_input" class="form-control form_input" type="text" name="unit_no_input" value="">
+            </div>
+          </div>
+        {% elif field.id_for_label == 'id_unit_no' %}
+          {{ form.unit_no }}
+        {% else %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}: </label>
+        {{field}}
+        {% endif %}
+
+        
+        {% for error in field.errors %}
+          <p class="help-block text-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+    <button type="submit" class="btn btn-primary">{% if not form.instance.pk %}Create {% else %} {{form.instance}} Update {% endif %}</button>
+  </div>
+</form>
+
+<script>
+  var unit_no = document.getElementById('unit_no_input');
+
+  unit_no.addEventListener('change', function() {
+    var test = $('input[name=unit_no]').val(unit_no.value);
+    console.log(test.val());
+  });
+  
+</script>

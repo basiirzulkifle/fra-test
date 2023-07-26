@@ -1,0 +1,58 @@
+{% extends 'base-guest.html' %}
+
+{% block extrastyles %}
+
+<style>
+    .iti {
+        display: inherit;
+    }
+
+    .iti .error {
+        font-size: small;
+        width: 100%;
+    }
+
+    #search-mobile {
+        font-size: small;
+    }
+
+    #search-mobile:hover {
+        text-decoration: underline;
+        transform: scale(1.1);
+    }
+</style>
+
+{% endblock extrastyles %}
+
+{% block content_guest %}
+<div class="row">
+    <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="card">
+            {% comment %} <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-dark">Have you registered before?</h6>
+                <a id="search-mobile" href="{% url 'search-mobile' %}" class="text-primary">Search your registration details via mobile number</a>
+            </div> {% endcomment %}
+            {% if code %}
+                <div class="card-header">
+                    <h4 class="m-0 font-weight-bold text-primary">Invited Visitor Registration</h4>
+                </div>
+            {% else %}
+                <div class="card-header">
+                    <h4 class="m-0 font-weight-bold text-primary">Public Visitor Registration</h4>
+                </div>
+            {% endif %}
+            
+            <div class="card-body">
+                {% if code %}
+                    {% include 'visitors/visitor_form.html' %}
+                {% else %}
+                    {% include 'visitors/visitor_kiosk_form.html' %}
+                {% endif %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+{% endblock content_guest %}
+

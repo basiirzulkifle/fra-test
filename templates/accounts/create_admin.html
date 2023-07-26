@@ -1,0 +1,49 @@
+{% extends 'base2.html' %}
+
+<style>
+
+  /* p .error {
+    color: red;
+    font-size: small; !important;
+  } */
+
+  /* p .text-danger {
+    margin-bottom: 0.2rem; !important
+  } */
+
+</style>
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="card mt-3 mb-3">
+    <div class="card-header">
+      <h2>Create New {{ user_type | title }}</h2>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-8 col-sm-10 col-12">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% comment %} {{ form.as_p }} {% endcomment %}
+            {% for field in form %}
+              <div class="form-group{% if field.errors %} has-error{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}: </label>
+                {{field}}
+                {% for nfe in field.non_field_errors %}
+                  <p class="help-block text-danger">{{ nfe }}</p>
+                {% endfor %}
+                {% for error in field.errors %}
+                  <p class="help-block text-danger">{{ error }}</p>
+                {% endfor %}
+              </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary btn-sm">Create Administrator</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

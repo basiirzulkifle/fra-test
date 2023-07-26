@@ -1,0 +1,272 @@
+{% load static %}
+{% load cms %}
+
+<style>
+    p {
+        margin-bottom: 1px;
+    }
+    hr {
+        margin-top: 0;
+    }
+
+    #id_photo {
+        display: none;
+    }
+
+    #icon{
+        width: 20px;
+        cursor: pointer;
+      }
+</style>
+
+<div class="container-fluid">
+    <form id="check_in" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p><span id="msg-info" class="small text-danger">Are you sure this are your details information?</span></p>
+        <p><strong>Registered At:</strong> {{ visitor.created_at|default_if_none:"-" }}</p>
+        <p><strong><label for="id_start_date1">Start Date/Time: </label></strong></p>
+        <input type="datetime-local" class="form-control form_input" id="id_start_date1" name="start_date1">
+        <p><span id="msg-info" class="small text-success">Valid start date will be auto updated to current time you're checking in.</span></p>
+        <p><strong>End Date/Time:</strong></p>
+        <p>{{ form.end_date }}</p>
+        <p><span id="msg-info" class="small text-info">Your valid session entries will end on the above date stated.</span></p>
+        <span id="msg-info" class="small text-info">If your valid end time is already past current, kindly update your new end time accordingly.</span>
+        <hr>
+        <div class="row mb-3 d-flex align-items-center justify-content-center">
+            <div class="col-md-4" style="display: flex;align-items: center;justify-content: center;">
+                {% if visitor.photo != '' %}
+                <img id="visitor-photo2" src="/static{{ visitor.photo.url }}" width="150px">
+                {% else %}
+                <img src="/static/img/profile.png" width="150px">
+                {% endif %}
+            </div>
+            <div class="col-md-8">
+                <p>
+                    <img src="/static{{ visitor.qr_image.url }}" alt="visitor QR" width="280px">
+                    <a href="/static{{ visitor.qr_image.url }}" title="download QR" download>
+                        <i class="fas fa-download fa-sm text-primary-100" aria-hidden="true"></i>
+                    </a>
+                </p>
+                <p class="small text">
+                    Scan check-in via face or scan the QR code when entering premises/floor here after check in at the kiosk
+                </p>
+                <p> <strong>Visiting Company:</strong> {{ visitor.tenant }} </p>
+                <!-- <label for="id_photo">Replace photo: &nbsp;
+                    {% comment %} <input type="hidden" name="photo" id="id_photo" accept="image/*" capture="camera" /> {% endcomment %}
+                    <i id="icon" class="fas fa-upload fa-sm text-gray-500" aria-hidden="true"></i>
+                </label> -->
+                {% comment %} {{ form.photo }} {% endcomment %}
+                <p><strong>Entries Code : </strong> {{ visitor.code|default_if_none:"-" }}</p>
+                <p><strong>Name : </strong> {{ visitor.name|default_if_none:"-" }}</p>
+                <p><strong>Identification No. : </strong> *****{{ visitor.identification_no|default_if_none:"-" }}</p>
+                <p><strong>Contact No.: </strong> {{ visitor.contact_no|default_if_none:"-" }}</p>
+            </div>
+        </div>
+        <p id="replace-photo-valid" class="hide text-success small" style="margin-left: 5%;"></p>
+        <p id="replace-photo-error" class="hide text-danger small" style="margin-left: 5%;"></p>
+        {% comment %} <div id="errorDiv" class="col-md alert alert-warning alert-dismissible fade hide" id="update_alert" role="alert">
+            <span id="error-span" class="error-all hide"></span>
+        </div> {% endcomment %}
+        <input type="hidden" name="visitor_id" value="{{ visitor.id }}" />
+        <div class="row d-flex align-items-center justify-content-center">
+            <input id="submit2" type="submit" class="btn btn-primary btn-sm mt-3" value="Check In"></input>
+        </div>
+        <div class="row d-flex align-items-center justify-content-center mt-2">
+            <p class="checkin-err hide text-danger small">{{ error }}</p>
+        </div>
+    </form>
+</div>
+
+    {% comment %} <form id="check_in" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row px-4 mt-4">
+            <div id="errorDiv" class="col-md alert alert-warning alert-dismissible fade hide mb-4" id="update_alert" role="alert">
+                <span id="error-span" class="error-all hide"></span>
+            </div>
+            {% if form.errors %}
+                {% for field in form.non_field_errors %}
+                    <div class="col-md alert alert-warning alert-dismissible fade show mb-4" id="update_alert" role="alert">
+                        <strong>{{ field | escape }}</strong>
+                    </div>
+                {% endfor %}
+            {% endif %}
+          </div>
+          <div class="img-responsive row d-flex justify-content-center">
+            <img id='visitor-photo2' src="{{request.scheme}}://{{request.META.HTTP_HOST}}/static{{visitor.photo.url}}" style="border-radius: 50%; width: 180px;" class="img-responsive2 mb-2" alt="avatar">
+            <br/>
+          </div>
+          <input type="hidden" name="visitor_id" value="{{ visitor.id }}" />
+          {% for field in form %}
+            <div class="form-group{% if field.errors %} has-error{% endif %}">
+                {% if field.id_for_label == 'id_contact_no' %}
+                    <label for="phone">Contact No.: </label></br>
+                    <input class="form-control form_input" type="tel" id="phone2" placeholder="123456789" required>
+                    <input type="hidden" name="country2" id="country2" value="">
+                    {{ form.contact_no }}
+                    <div>
+                    <span id="detail-valid-msg" class="hide"></span>
+                    <span id="detail-error-msg" class="hide text-danger small py-1"></span>
+                    </div>
+                {% elif field.id_for_label == 'id_identification_no' %}
+                    <label for="id_identification_no">Identification No.: </label></br>
+                    {{ form.identification_no }}
+                    <div>
+                    <p><span id="detail-valid-nric" class="hide small text-success py-1"></span></p>
+                    <p><span id="detail-error-nric" class="hide small text-danger py-1"></span></p>
+                    </div>
+                {% elif field.id_for_label == 'id_start_date' %}
+                    <label for="id_start_date1">Start Date: </label></br>
+                    <input type="datetime-local" class="form-control form_input" id="id_start_date1" name="start_date1">
+                    <p><span id="msg-info" class="small text-success py-1">Valid start date will be auto updated to current time you're checking in.</span></p>
+                {% else %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}: </label>
+                {{field}}
+                {% endif %}
+                
+                {% for error in field.errors %}
+                    <p class="help-block text-danger">{{ error }}</p>
+                {% endfor %}
+                {% for nfe in field.non_field_errors %}
+                    <p class="help-block text-danger">{{ nfe }}</p>
+                {% endfor %}
+            </div>
+          {% endfor %}
+        <input id="submit2" type="submit" class="btn btn-info btn-sm mt-3" value="Check In"></input>
+    </form> {% endcomment %}
+
+{% block javascripts %}
+<script>
+    $.fn.noMask = function(regex) { 
+        this.on("keypress", function(e) {
+            if (regex.test(String.fromCharCode(e.which))) {
+                return false;
+            }
+        });
+    }
+    
+    $("input[type=tel]").noMask( /[a-zA-Z]/ );
+
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    now.setSeconds(now.getSeconds() + 20)
+    // 2022-04-12T17:09
+    document.getElementById('id_start_date1').setAttribute("readonly", "readonly");
+    document.getElementById('id_start_date1').value = now.toISOString().slice(0,16);
+
+    var resetDateError = function() {
+        var checkinErr = document.querySelector('.checkin-err');
+        checkinErr.classList.remove("show");
+        checkinErr.classList.add("hide");
+        checkinErr.innerHTML = ''
+    }
+
+    var end_date = document.getElementById('id_end_date');
+    end_date.addEventListener('blur', function() {
+        resetDateError();
+    })
+
+    var errorPhoto = document.querySelector("#replace-photo-error");
+    var validPhoto = document.querySelector("#replace-photo-valid");
+
+    var resetPhotoValidation = function() {
+        {% if visitor.photo %}
+        $('#visitor-photo2').attr('src', "/static{{ visitor.photo.url }}");
+        {% endif %}
+        errorPhoto.innerHTML = "";
+        validPhoto.innerHTML = "";
+        errorPhoto.classList.add("hide");
+        validPhoto.classList.add("hide");
+    };
+
+    $('input[type=file]').change(function(e){
+        console.log('photo updated');
+        resetPhotoValidation();
+        preview_image(this);
+    })
+
+    function preview_image(input) 
+    {
+
+        if (input.files && input.files[0]) {
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#visitor-photo2').attr('src', e.target.result);
+
+                var photo_input = e.target.result;
+
+                // run check face with fra main
+                $.ajax({
+                    headers: { "X-CSRFToken": getCookie('csrftoken') },
+                    url : '/self-register/validate-photo/',
+                    method : "POST",
+                    data: {'photo': photo_input},
+                    success : function(response) {
+                        var btn = document.getElementById('submit2');
+
+                        if (response.error) {
+                            errorPhoto.innerHTML = response.msg;
+                            btn.setAttribute("disabled", true);
+                        } else {
+                            validPhoto.innerHTML = response.msg;
+                            btn.removeAttribute("disabled", false);
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        swal.fire("!Opps ", "Something went wrong. Try Again. Thank you.", "error");
+                    }
+                })
+            }
+            
+            var photoData = reader.readAsDataURL(input.files[0]); // convert to base64 string
+        }
+    }
+
+    // var nric = document.querySelector("#id_identification_no");
+    // var errorNRIC = document.querySelector("#detail-error-nric");
+    // var validNRIC = document.querySelector("#detail-valid-nric");
+
+    // var resetNric = function() {
+    //     errorNRIC.innerHTML = "";
+    //     validNRIC.innerHTML = "";
+    //     errorNRIC.classList.add("hide");
+    //     validNRIC.classList.add("hide");
+    // };
+
+    $(document).ready(function () {
+
+        // $('#id_identification_no').change(function(e) {
+        //     resetNric();
+        //     if (this.value !== '') {
+        //         $.ajax({
+        //             headers: { "X-CSRFToken": getCookie('csrftoken') },
+        //             url : '/self-register/validate-nric/',
+        //             method : "POST",
+        //             data: {
+        //                 'nric': this.value,
+        //             },
+        //             success : function(data) {
+
+        //                 if (data.valid) {
+        //                     validNRIC.innerHTML = data.message;
+        //                     $('#submit2').show('slow');
+        //                 } else {
+        //                     errorNRIC.innerHTML = data.message;
+        //                     $('#submit2').hide('slow');
+        //                 }
+        //             },
+        //             error : function(response) {
+        //                 console.log(response)
+        //             },
+        //             cache: false,
+        //         });
+        //     }
+        // })
+
+        // nric.addEventListener('change', resetNric);
+        // nric.addEventListener('keyup', resetNric);
+    });
+  
+</script>
+
+{% endblock javascripts %}

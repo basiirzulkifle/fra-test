@@ -1,0 +1,60 @@
+{% extends 'base-guest.html' %}
+
+{% block content_guest %}
+
+<div class="row">
+    <div class="col-12 d-flex align-items-center justify-content-center">
+        <div class="card">
+            <div class="card-header">
+                <div class="row d-flex align-items-center justify-content-between">
+                    <h4 class="m-0 font-weight-bold text-primary">Visitor Self Register Entries - Done</h4>
+                    <span><button class="btn btn-primary btn-circle btn-sm" onclick="window.print()">
+                        <i class="fas fa-print"></i>
+                    </button></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p>
+                    <span class="text-success font-weight-bold">Self Register Entries Success!</span>
+                </p>
+                <p>
+                    <span class="text-danger">Be reminded that this page will automatically reset after 10 seconds.</span>
+                </p>
+                <p>
+                    Kindly key-in the provided code: <strong>{{ code }}</strong> or your mobile no during check in.
+                </p>
+                <p>
+                    You can also check in using QR generated for you below: 
+                </p>
+                <p>
+                    <img src="/static{{ visitor.qr_image.url }}" alt="visitor QR" width="300px">
+                </p>
+                <p>
+                    Download & scan the QR code when entering premises/floor here after check in at the kiosk:
+                    <a href="/static{{ visitor.qr_image.url }}" title="download QR" download>
+                        <i class="fas fa-download fa-sm text-primary-100" aria-hidden="true"></i>
+                    </a>
+                </p>
+                <p>
+                    <strong>Reminder:</strong>
+                </p>
+                <p>
+                    <ul>
+                        <li>Do not lose your registration code.</li>
+                        <li>Note that this is only a one way entry. You may do a self register for another entry.</li>
+                        <li>If you loss your check in privilege, you can always search your registered details using you unique code or mobile numbers.</li>
+                    </ul>
+                </p>
+                <p>Thank you.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    setTimeout(() => {
+        window.location.href = window.location.href
+    }, 10000)
+</script>
+
+{% endblock content_guest %}
