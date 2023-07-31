@@ -28,7 +28,7 @@ PUBLIC_DIR = os.path.abspath(os.path.join(
 SECRET_KEY = 'django-insecure-=vc)#zpcz*zluqv5byt=4v@fxvx@v4b40$0&9z^=6-yiw1kt-#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -58,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middlewares.AjaxMiddleware'
 ]
 
 ROOT_URLCONF = 'luzern_vms.urls'
